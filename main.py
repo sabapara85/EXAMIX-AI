@@ -1,5 +1,5 @@
 """
-EXAMIX AI - Backend (FastAPI) - Deploy-ready
+EXAMIX AI - Backend (FastAPI) with HTTP Basic Authentication
 """
 
 import os
@@ -8,23 +8,23 @@ import logging
 import time
 from typing import List, Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import secrets
 
 import ai_provider
 import ocr_service
 import demo_bank
 import syllabus
 
-# ---------- Resource path for PyInstaller & Render ----------
+# ---------- Resource path (if you moved files to root, this still works) ----------
 def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller."""
     try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
@@ -41,6 +41,27 @@ load_dotenv()
 
 app = FastAPI(title="EXAMIX AI")
 
+# ---------- Security ----------
+security = HTTPBasic()
+
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    """Check username and password against environment variables."""
+    correct_username = os.getenv("APP_USERNAME", "admin")
+    correct_password = os.getenv("APP_PASSWORD", "password")
+
+    # Use secrets.compare_digest to prevent timing attacks
+    is_username_correct = secrets.compare_digest(credentials.username, correct_username)
+    is_password_correct = secrets.compare_digest(credentials.password, correct_password)
+
+    if not (is_username_correct and is_password_correct):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+# ---------- CORS ----------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -58,12 +79,7 @@ class GenerateRequest(BaseModel):
     source_text: Optional[str] = None
     demo_mode: bool = False
 
-# ---------- Favicon ----------
-@app.get("/favicon.ico")
-async def favicon():
-    return FileResponse(resource_path("logo.ico"))
-
-# ---------- Health ----------
+# ---------- Public endpoints (no auth) ----------
 @app.get("/api/health")
 def health_check():
     ocr_ready = bool(os.getenv("GOOGLE_VISION_API_KEY", "").strip()) or bool(
@@ -83,9 +99,17 @@ def health_check():
         "fully_ready": ocr_ready and ai_ready,
     }
 
-# ---------- Demo sample ----------
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse(resource_path("logo.ico"))
+
+# ---------- Protected endpoints (require auth) ----------
+@app.get("/")
+def serve_index(username: str = Depends(verify_credentials)):
+    return FileResponse(os.path.join(resource_path("frontend"), "index.html"))
+
 @app.get("/api/demo-sample")
-def demo_sample():
+def demo_sample(username: str = Depends(verify_credentials)):
     logger.info("Serving demo sample")
     return {
         "extracted_text": demo_bank.SAMPLE_PAPER_TEXT,
@@ -94,9 +118,11 @@ def demo_sample():
         "demo_mode": True,
     }
 
-# ---------- Upload & Analyze ----------
 @app.post("/api/upload-and-analyze")
-async def upload_and_analyze(file: UploadFile = File(...)):
+async def upload_and_analyze(
+    file: UploadFile = File(...),
+    username: str = Depends(verify_credentials)
+):
     start_time = time.time()
     logger.info(f"Received file: {file.filename} ({file.content_type})")
 
@@ -146,9 +172,11 @@ async def upload_and_analyze(file: UploadFile = File(...)):
         "demo_mode": False,
     }
 
-# ---------- Generate ----------
 @app.post("/api/generate")
-def generate_paper(req: GenerateRequest):
+def generate_paper(
+    req: GenerateRequest,
+    username: str = Depends(verify_credentials)
+):
     start_time = time.time()
     logger.info(f"Generate request: concepts={req.concepts}, type={req.question_type}, num={req.num_questions}, demo={req.demo_mode}")
 
@@ -211,13 +239,9 @@ def generate_paper(req: GenerateRequest):
                 else:
                     raise HTTPException(status_code=503, detail="Demo bank could not generate questions.")
 
-# ---------- Serve frontend ----------
+# ---------- Serve static files (public) ----------
 FRONTEND_DIR = resource_path("frontend")
-
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-    @app.get("/")
-    def serve_index():
-        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 else:
     logger.error(f"Frontend directory not found at {FRONTEND_DIR}")

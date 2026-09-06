@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EXAMIX AI — CBSE Class 9 Mathematics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css?v=2" />
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ============ HEADER ============ -->
+  <header class="masthead">
+    <div class="masthead__rule"></div>
+    <div class="masthead__inner">
+      <p class="masthead__kicker">CBSE Class 9 · Mathematics</p>
+      <h1 class="masthead__title">EXAMIX AI</h1>
+      <p class="masthead__tagline">Where concepts converge, understanding multiplies.</p>
+      <p class="masthead__credit">Developed by Krishiv Patel</p>
+    </div>
+  </header>
+
+  <main class="sheet" id="sheet">
+
+    <!-- ============ STEP 1: UPLOAD ============ -->
+    <section class="step" id="step-upload" data-step="1">
+      <div class="step__head">
+        <span class="step__num">Q1</span>
+        <h2 class="step__title">Upload your question paper</h2>
+      </div>
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload question paper">
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" hidden />
+        <p class="dropzone__main">Drop a PDF, JPG or PNG here, or click to browse</p>
+        <p class="dropzone__sub">Your AI will read it and pull out the concepts it covers.</p>
+        <p class="dropzone__file" id="dropzoneFile"></p>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn--primary" id="analyzeBtn" disabled>Analyze paper</button>
+        <button class="btn btn--ghost" id="demoBtn">Use expo demo mode</button>
+      </div>
+
+      <p class="status" id="uploadStatus" aria-live="polite"></p>
+    </section>
+
+    <!-- ============ STEP 2: CONCEPTS ============ -->
+    <section class="step step--hidden" id="step-concepts" data-step="2">
+      <div class="step__head">
+        <span class="step__num">Q2</span>
+        <h2 class="step__title">Select concepts to mix</h2>
+      </div>
+      <p class="step__hint">Choose at least two concepts found in your paper. EXAMIX AI will weave them into new questions.</p>
+
+      <div class="concept-grid" id="conceptGrid"></div>
+
+      <div class="actions">
+        <button class="btn btn--primary" id="toOptionsBtn" disabled>Continue</button>
+      </div>
+      <p class="status" id="conceptStatus" aria-live="polite"></p>
+    </section>
+
+    <!-- ============ STEP 3: OPTIONS ============ -->
+    <section class="step step--hidden" id="step-options" data-step="3">
+      <div class="step__head">
+        <span class="step__num">Q3</span>
+        <h2 class="step__title">Choose your paper format</h2>
+      </div>
+
+      <div class="option-block">
+        <p class="option-block__label">Question type</p>
+        <div class="pill-group" id="typeGroup">
+          <button class="pill" data-value="MCQ">MCQ</button>
+          <button class="pill" data-value="Short Answer">Short answer</button>
+          <button class="pill" data-value="Long Answer">Long answer</button>
+          <button class="pill" data-value="Mixed">Mixed</button>
+        </div>
+      </div>
+
+      <div class="option-block">
+        <p class="option-block__label">Number of questions</p>
+        <div class="pill-group" id="countGroup">
+          <button class="pill" data-value="5">5</button>
+          <button class="pill" data-value="10">10</button>
+          <button class="pill" data-value="15">15</button>
+          <button class="pill" data-value="20">20</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn--primary" id="generateBtn" disabled>Generate practice paper</button>
+      </div>
+      <p class="status" id="generateStatus" aria-live="polite"></p>
+    </section>
+
+    <!-- ============ STEP 4: GENERATED PAPER ============ -->
+    <section class="step step--hidden" id="step-paper" data-step="4">
+      <div id="paperContainer"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ PRINTABLE PAPER (kept out of normal flow, shown for print) ============ -->
+<div id="printRoot" class="print-only"></div>
+
+<script src="/static/script.js?v=2"></script>
+</body>
+</html>
